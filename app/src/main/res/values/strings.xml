@@ -1,3 +1,18 @@
 <resources>
     <string name="app_name">PitStAPP</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <string name="filterByGC">Filter by Gas Co.:</string>
+
+    <string-array name="gas_companies">
+        <item>All</item>
+        <item>Shell</item>
+        <item>Petron</item>
+        <item>Caltex</item>
+        <item>Others</item>
+    </string-array>
+
+    <string name="searchButton">Search</string>
 </resources>
