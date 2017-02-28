@@ -6,10 +6,11 @@
     tools:context="com.example.alec.pitstapp.Fragments.MapFragment">
 
     <!-- TODO: Update blank fragment layout -->
-    <fragment
-        android:id="@+id/map_mapFragment"
+    <com.google.android.gms.maps.MapView
+        android:id="@+id/mapview"
         android:layout_width="match_parent"
-        android:layout_height="250dp"/>
+        android:layout_height="match_parent"></com.google.android.gms.maps.MapView>
+
 
     <LinearLayout
         android:orientation="horizontal"
