@@ -2,26 +2,40 @@ package com.example.alec.pitstapp.Fragments;
 
 
 import android.Manifest;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.Toast;
 
+import com.example.alec.pitstapp.Adapters.GasStation;
+import com.example.alec.pitstapp.Adapters.GasStationAdapter;
 import com.example.alec.pitstapp.R;
+import com.example.alec.pitstapp.SearchModules.GetNearbyPlacesData;
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
@@ -30,7 +44,10 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MapStyleOptions;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.json.JSONArray;
@@ -39,26 +56,37 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 /**
  * A simple {@link Fragment} subclass.
  */
 public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,LocationListener {
-    final String TAG = "MapFragment";
-    LocationRequest locationRequest;
-    GoogleApiClient mAppClient;
-    MapView mMapView;
-    GoogleMap mGoogleMap;
-    Location location;
-    Double curLat;
-    Double curLong;
 
-    public static final int MY_PERMISSIONS_REQUEST_LOCATION = 69;
+    GoogleApiClient mGoogleApiClient;
+    Location mLastLocation;
+    Marker mCurrLocationMarker;
+    LocationRequest mLocationRequest;
+    ViewGroup rootView;
+    MapView mapView;
+    double latitude;
+    double longitude;
+    private RecyclerView recyclerViewNearby;
+    private GasStationAdapter adapter;
+    private ImageView ivAnchor;
+    private GoogleMap mMap;
+    Marker gasStationMarker[];
 
+    public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
+    String bufferCatcher = "";
 
     public MapFragment() {
         // Required empty public constructor
@@ -66,235 +94,409 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
 
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        Context context = getContext();
-        LocationManager lm = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
-        boolean gps_enabled = false;
-        boolean network_enabled = false;
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        rootView = (ViewGroup) inflater.inflate(R.layout.fragment_map, container, false);
+        checkVersionAndGooglePlayServices();
+        initializeViews(rootView);
+        configureMap(savedInstanceState);
+        //configureSlidingPanel();
+        return rootView;
+    }
 
-        mAppClient = new GoogleApiClient.Builder(context).addApi(LocationServices.API)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this).build();
-
-        try {
-            gps_enabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
-        } catch(Exception ex) {}
-
-        try {
-            network_enabled = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-        } catch(Exception ex) {}
-
-        if(!gps_enabled && !network_enabled) {
-            // notify user
-            AlertDialog.Builder dialog = new AlertDialog.Builder(context);
-            dialog.setMessage("No GPS or Internet Connection");
-            dialog.setPositiveButton("Open", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface paramDialogInterface, int paramInt) {
-                    // TODO Auto-generated method stub
-                    Intent myIntent = new Intent( Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                    startActivity(myIntent);
-                    //get gps
-                }
-            });
-            dialog.show();
-        }
-        View v = inflater.inflate(R.layout.fragment_map, container, false);
-
-        mMapView = (MapView) v.findViewById(R.id.mapview);
-        mMapView.onCreate(savedInstanceState);
-        mMapView.getMapAsync(this); //this is important
+    public void checkVersionAndGooglePlayServices() {
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             checkLocationPermission();
         }
-
-        curLat = location.getLatitude();
-        curLong = location.getLongitude();
-        return v;
-    }
-
-    private void setUpMap(final String strUrl) {
-        // Retrieve the city data from the web service
-        // In a worker thread since it's a network operation.
-        new Thread(new Runnable() {
-            public void run() {
-                try {
-                    retrieveAndAddCities(strUrl);
-                } catch (IOException e) {
-
-                }
-            }
-        }).start();
-    }
-
-    protected void retrieveAndAddCities(String strUrl) throws IOException {
-        HttpURLConnection conn = null;
-        final StringBuilder json = new StringBuilder();
-        try {
-            // Connect to the web service
-            URL url = new URL(strUrl);
-            conn = (HttpURLConnection) url.openConnection();
-            InputStreamReader in = new InputStreamReader(conn.getInputStream());
-
-            // Read the JSON data into the StringBuilder
-            int read;
-            char[] buff = new char[1024];
-            while ((read = in.read(buff)) != -1) {
-                json.append(buff, 0, read);
-            }
-        } catch (IOException e) {
-
-        } finally {
-            if (conn != null) {
-                conn.disconnect();
-            }
+        //Check if Google Play Services Available or not
+        if (!CheckGooglePlayServices()) {
+            Log.d("onCreate", "Finishing test case since Google Play Services are not available");
+            getActivity().finish();
         }
-
-        // Create markers for the city data.
-        // Must run this on the UI thread since it's a UI operation.
-                try {
-                    createMarkersFromJson(json.toString());
-                } catch (JSONException e) {
-
-                }
-    }
-
-    void createMarkersFromJson(String json) throws JSONException {
-        // De-serialize the JSON string into an array of city objects
-        JSONArray jsonArray = new JSONArray(json);
-        for (int i = 0; i < jsonArray.length(); i++) {
-            // Create a marker for each city in the JSON data.
-            JSONObject jsonObj = jsonArray.getJSONObject(i);
-            mGoogleMap.addMarker(new MarkerOptions()
-                    .title(jsonObj.getString("name"))
-                    .position(new LatLng(
-                            jsonObj.getJSONArray("latlng").getDouble(0),
-                            jsonObj.getJSONArray("latlng").getDouble(1)
-                    ))
-            );
+        else {
+            Log.d("onCreate","Google Play Services available.");
         }
     }
 
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-        if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
-        }
-        googleMap.setMyLocationEnabled(true);
-    }
-
-    public boolean checkLocationPermission() {
+    public boolean checkLocationPermission(){
         if (ContextCompat.checkSelfPermission(getActivity().getApplicationContext(),
-                android.Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-
-            // Asking user if explanation is needed
+                android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
                     android.Manifest.permission.ACCESS_FINE_LOCATION)) {
-
-                // Show an explanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
-
-                //Prompt the user once explanation has been shown
                 ActivityCompat.requestPermissions(getActivity(),
-                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION,
-                                android.Manifest.permission.ACCESS_COARSE_LOCATION},
+                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
                         MY_PERMISSIONS_REQUEST_LOCATION);
-
-
-            } else {
-                // No explanation needed, we can request the permission.
+            }
+            else {
                 ActivityCompat.requestPermissions(getActivity(),
-                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION,
-                                android.Manifest.permission.ACCESS_COARSE_LOCATION},
+                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
                         MY_PERMISSIONS_REQUEST_LOCATION);
             }
             return false;
-        } else {
+        }
+        else {
             return true;
         }
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        mMapView.onResume();
+    private boolean CheckGooglePlayServices() {
+        GoogleApiAvailability googleAPI = GoogleApiAvailability.getInstance();
+        int result = googleAPI.isGooglePlayServicesAvailable(getActivity().getApplicationContext());
+        if(result != ConnectionResult.SUCCESS) {
+            if(googleAPI.isUserResolvableError(result)) {
+                googleAPI.getErrorDialog(getActivity(), result, 0).show();
+            }
+            return false;
+        }
+        return true;
+    }
+
+    public void initializeViews(ViewGroup rootView) {
+        mapView = (MapView) rootView.findViewById(R.id.mapview);
+        recyclerViewNearby = (RecyclerView)rootView.findViewById(R.id.recyclerView_results);
+        //ivAnchor = (ImageView) rootView.findViewById(R.id.nearby_anchor);
+        //mLayout = (SlidingUpPanelLayout) rootView.findViewById(R.id.sliding_layout);
+    }
+
+    public void configureMap(Bundle savedInstanceState) {
+        mapView.onCreate(savedInstanceState);
+        mapView.getMapAsync(this);
     }
 
     @Override
-    public void onPause() {
-        super.onPause();
-        mMapView.onPause();
+    public void onStart() {
+        super.onStart();
+        boolean isLocationEnabled = false;
+        try {
+            if (isConnectedToNetwork(getContext()) == true) {
+                if (isLocationServiceEnabled() == false) {
+                    Toast.makeText(getActivity().getApplicationContext(),"No location", Toast.LENGTH_LONG).show();
+                }
+                else {
+                    isLocationEnabled = true;
+                }
+            }
+            if (isConnectedToNetwork(getContext()) == false && isLocationServiceEnabled() == false) {
+                Toast.makeText(getActivity().getApplicationContext(),"No internet connection and location service.", Toast.LENGTH_LONG).show();
+            }
+        }
+        catch (NullPointerException e){
+            Toast.makeText(getActivity().getApplicationContext(),"No location211", Toast.LENGTH_LONG).show();
+        }
+
+    }
+
+    public static boolean isConnectedToNetwork(Context context) {
+        ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+        return networkInfo != null && networkInfo.isConnected();
+    }
+
+    public boolean isLocationServiceEnabled() {
+        try {
+            LocationManager locManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+            if (locManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        catch (NullPointerException e) {
+
+        }
+        return false;
+    }
+
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        mMap = googleMap;
+        mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+        mMap.getUiSettings().setMapToolbarEnabled(false);
+        mMap.setMapStyle(new MapStyleOptions(getResources().getString(R.string.custom_map)));
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (ContextCompat.checkSelfPermission(getActivity().getApplicationContext(),
+                    android.Manifest.permission.ACCESS_FINE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED) {
+                buildGoogleApiClient();
+                mMap.setMyLocationEnabled(true);
+            }
+        } else {
+            buildGoogleApiClient();
+            mMap.setMyLocationEnabled(true);
+        }
+    }
+
+    protected synchronized void buildGoogleApiClient() {
+        mGoogleApiClient = new GoogleApiClient.Builder(getActivity().getApplicationContext())
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .build();
+        mGoogleApiClient.connect();
+    }
+
+    @Override
+    public void onResume() {
+        mapView.onResume();
+        super.onResume();
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        mMapView.onDestroy();
+        mapView.onDestroy();
     }
 
     @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        mMapView.onSaveInstanceState(outState);
+    public void onPause() {
+        super.onPause();
+        mapView.onPause();
     }
 
     @Override
     public void onLowMemory() {
         super.onLowMemory();
-        mMapView.onLowMemory();
+        mapView.onLowMemory();
     }
 
     @Override
-    public void onStart(){
-        super.onStart();
-        mAppClient.connect();
+    public void onConnected(Bundle bundle) {
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(1000);
+        mLocationRequest.setFastestInterval(1000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
+        if (ContextCompat.checkSelfPermission(getActivity().getApplicationContext(),
+                android.Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+
+        }
     }
+
     @Override
-    public void onStop(){
-        mAppClient.disconnect();
-        super.onStop();
-    }
-    @Override
-    public void onConnectionSuspended(int i){
-        Log.i(TAG, "Connection suspended");
+    public void onConnectionSuspended(int i) {
 
     }
+
     @Override
-    public void onConnectionFailed(ConnectionResult connectionResult){
-        Log.i(TAG, "connection failed");
+    public void onLocationChanged(Location location) {
+        mLastLocation = location;
+        if (mCurrLocationMarker != null) {
+            mCurrLocationMarker.remove();
+        }
+
+        latitude = location.getLatitude();
+        longitude = location.getLongitude();
+        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+        MarkerOptions markerOptions = new MarkerOptions();
+        markerOptions.position(latLng);
+        markerOptions.title("Current Position");
+        mCurrLocationMarker = mMap.addMarker(markerOptions);
+
+        float zoomLevel = (float) 16.0;
+
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoomLevel));
+
+        if (isLocationServiceEnabled()){
+            if (isConnectedToNetwork(getContext()) == false){
+                Toast.makeText(getActivity().getApplicationContext(),"No internet connection", Toast.LENGTH_LONG).show();
+            }
+            else {
+                gasStationSearch();
+            }
+        }
+
+        Log.d("onLocationChanged", String.format("latitude:%.3f longitude:%.3f",latitude,longitude));
+
+        if (mGoogleApiClient != null) {
+            LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+        }
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
 
     }
-    @Override
-    public void onConnected(Bundle bundle){
-        locationRequest = LocationRequest.create();
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(1000);
-        LocationServices.FusedLocationApi.requestLocationUpdates(mAppClient, locationRequest, this);
+
+    public void gasStationSearch() {
+        String gasStation = "gas_station";
+        try {
+            mMap.clear();
+        }
+        catch (NullPointerException e){
+
+        }
+        ArrayList<String> url = new ArrayList<String>();
+        String urlHolder = getUrl(latitude, longitude, gasStation);
+        url.add(urlHolder);
+        new JSONTask().execute(url);
     }
-    @Override
-    public void onLocationChanged(Location location){
-        curLat = location.getLatitude();//current latitude
-        curLong = location.getLongitude();//current longitude
-        LatLng curPos = new LatLng(curLat, curLong);
-        mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(curPos, 15));
+
+    private String getUrl(double latitude, double longitude, String nearbyPlace) {
         StringBuilder googlePlacesUrl = new StringBuilder("https://maps.googleapis.com/maps/api/place/nearbysearch/json?");
-        googlePlacesUrl.append("location=" + curLat + "," + curLong);
+        googlePlacesUrl.append("location=" + latitude + "," + longitude);
         googlePlacesUrl.append("&rankby=distance");
-        googlePlacesUrl.append("&type=gas_station");
-        googlePlacesUrl.append("&sensor=true");
-        googlePlacesUrl.append("&key=AIzaSyCpxm09Wptnl10RwXdzV9FYxuiwXwCoO5E");
-        final String stringUrl = googlePlacesUrl.toString();
-        setUpMap(stringUrl);
+        googlePlacesUrl.append("&type=" + nearbyPlace);
+        //googlePlacesUrl.append("&keyword=shell");
+        googlePlacesUrl.append("&key=" + "AIzaSyCpxm09Wptnl10RwXdzV9FYxuiwXwCoO5E");
+        return (googlePlacesUrl.toString());
     }
 
+    public class JSONTask extends AsyncTask<ArrayList<String>, String, ArrayList<String>>{
+        int counter = 0;
+        String gasStationName = "";
+        String gasStationVicinity = "";
+        String gasStationPlaceID = "";
+        String gasStationLatitude = "";
+        String gasStationLongitude = "";
+        GasStation gasStationClass = new GasStation(gasStationName, gasStationVicinity, gasStationPlaceID, gasStationLatitude, gasStationLongitude);
+        ProgressDialog progressDialog = new ProgressDialog(getActivity());
+
+        @Override
+        protected ArrayList<String> doInBackground(ArrayList<String>... params) {
+            HttpURLConnection connection = null;
+            JSONObject json;
+            BufferedReader reader = null;
+
+            try{
+                URL url2 = new URL(params[0].get(0));
+                connection = (HttpURLConnection) url2.openConnection();
+                connection.connect();
+
+                InputStream stream = connection.getInputStream();
+                reader = new BufferedReader(new InputStreamReader(stream));
+
+                StringBuffer buffer = new StringBuffer();
+                String line = "";
+                while ((line = reader.readLine()) != null){
+                    buffer.append(line);
+                }
+
+                String finalJSON = buffer.toString();
+                ArrayList<String> JSONList = new ArrayList<>();
+                JSONList.add(finalJSON);
+                ArrayList<String> gasStationNamesList = new ArrayList<>();
+                ArrayList<String> gasStationVicinitiesList = new ArrayList<>();
+                ArrayList<String> gasStationPlaceIDList = new ArrayList<>();
+                ArrayList<String> gasStationLatitudeList = new ArrayList<>();
+                ArrayList<String> gasStationLongitudeList = new ArrayList<>();
+
+
+                JSONObject parentObject = new JSONObject(finalJSON);
+                JSONArray parentArray = parentObject.getJSONArray("results");
+
+                int i = 0;
+
+                counter = parentArray.length();
+                while (i != counter){
+                    JSONObject finalObject = parentArray.getJSONObject(i);
+//                    JSONObject finalObject2 = parentArray3.getJSONObject(i);
+
+                    String gasStationName = finalObject.getString("name");
+                    gasStationNamesList.add(gasStationName);
+
+                    String gasStationVicinity = finalObject.getString("vicinity");
+                    gasStationVicinitiesList.add(gasStationVicinity);
+
+                    String gasStationPlaceID = finalObject.getString("place_id");
+                    gasStationPlaceIDList.add(gasStationPlaceID);
+
+                    JSONObject gasStationLatitude1 = finalObject.getJSONObject("geometry");
+                    JSONObject gasStationLatitude2 = gasStationLatitude1.getJSONObject("location");
+                    gasStationLatitude = gasStationLatitude2.getString("lat");
+                    gasStationLatitudeList.add(gasStationLatitude);
+
+                    JSONObject gasStationLongitude1 = finalObject.getJSONObject("geometry");
+                    JSONObject gasStationLongitude2 = gasStationLongitude1.getJSONObject("location");
+                    gasStationLongitude = gasStationLatitude2.getString("lng");
+                    gasStationLongitudeList.add(gasStationLongitude);
+
+                    i++;
+                }
+
+                gasStationClass.putGasStationInformationList(gasStationNamesList, gasStationVicinitiesList, gasStationPlaceIDList,
+                        gasStationLatitudeList, gasStationLongitudeList);
+                return JSONList;
+            }
+            catch (MalformedURLException e){
+                e.printStackTrace();
+            }
+            catch (IOException e){
+                e.printStackTrace();
+            }
+            catch (JSONException e){
+                e.printStackTrace();
+            }
+
+            finally{
+                if (connection != null){
+                    connection.disconnect();
+                }
+                try {
+                    if (reader != null){
+                        reader.close();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            //return null;
+            return null;
+        }
+
+        @Override
+        public void onPreExecute() {
+            super.onPreExecute();
+            progressDialog.setMessage("Loading...");
+            progressDialog.setCancelable(false);
+            progressDialog.show();
+        }
+
+        protected void onPostExecute(ArrayList<String> testingArray) {
+            //super.onPostExecute();
+            //Log.d("DALIRI", "DALIRI MO");
+            Object[] DataTransfer = new Object[2];
+            DataTransfer[0] = mMap;
+            DataTransfer[1] = testingArray.get(0).toString();
+            //Log.d("onClick", url);
+            GetNearbyPlacesData getNearbyPlacesData = new GetNearbyPlacesData();
+            getNearbyPlacesData.execute(DataTransfer);
+
+            List<GasStation> data = new ArrayList<>();
+            int i = 0;
+            ArrayList<String> gasStationNameList = gasStationClass.getGasStationNameList();
+            ArrayList<String> gasStationVicinityList = gasStationClass.getGasStationVicinityList();
+            ArrayList<String> gasStationPlaceIDList = gasStationClass.getGasStationPlaceIDList();
+            ArrayList<String> gasStationLatitudeList = gasStationClass.getGasStationLatitudeList();
+            ArrayList<String> gasStationLongitudeList = gasStationClass.getGasStationLongitudeList();
+
+            while (i != counter){
+
+                String gasStationName = gasStationNameList.get(i);
+                String gasStationVicinity = gasStationVicinityList.get(i);
+                String gasStationPlaceID = gasStationPlaceIDList.get(i);
+                String latitude = gasStationLatitudeList.get(i);
+                String longitude = gasStationLongitudeList.get(i);
+
+                //Toast.makeText(getActivity().getApplicationContext(), latitude, Toast.LENGTH_LONG).show();
+
+                GasStation nGasStation = new GasStation(gasStationName, gasStationVicinity, gasStationPlaceID, latitude, longitude);
+                data.add(nGasStation);
+
+                i++;
+            }
+
+            adapter = new GasStationAdapter(getActivity(), data);
+            recyclerViewNearby.setLayoutManager(new GridLayoutManager(getActivity(), 1));
+            recyclerViewNearby.setItemAnimator(new DefaultItemAnimator());
+            recyclerViewNearby.setAdapter(adapter);
+            //tvData.setText(result);
+            progressDialog.dismiss();
+        }
+    }
+
+    public void catchBufferString(String holder){
+        bufferCatcher = holder;
+        //Log.e("HELLO", bufferCatcher);
+    }
 }
