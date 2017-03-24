@@ -1,11 +1,8 @@
 package com.example.alec.pitstapp.Fragments;
 
 
-import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
@@ -14,12 +11,9 @@ import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -27,6 +21,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -44,7 +39,6 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
@@ -62,7 +56,6 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -83,6 +76,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
     private GasStationAdapter adapter;
     private ImageView ivAnchor;
     private GoogleMap mMap;
+    private Button searchButton;
     Marker gasStationMarker[];
 
     public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
@@ -99,8 +93,18 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
         checkVersionAndGooglePlayServices();
         initializeViews(rootView);
         configureMap(savedInstanceState);
+        searchGasStation();
         //configureSlidingPanel();
         return rootView;
+    }
+
+    public void searchGasStation() {
+        searchButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                gasStationSearch();
+            }
+        });
     }
 
     public void checkVersionAndGooglePlayServices() {
@@ -153,6 +157,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
     public void initializeViews(ViewGroup rootView) {
         mapView = (MapView) rootView.findViewById(R.id.mapview);
         recyclerViewNearby = (RecyclerView)rootView.findViewById(R.id.recyclerView_results);
+        searchButton = (Button) rootView.findViewById(R.id.searchButton);
         //ivAnchor = (ImageView) rootView.findViewById(R.id.nearby_anchor);
         //mLayout = (SlidingUpPanelLayout) rootView.findViewById(R.id.sliding_layout);
     }
@@ -301,9 +306,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
             if (isConnectedToNetwork(getContext()) == false){
                 Toast.makeText(getActivity().getApplicationContext(),"No internet connection", Toast.LENGTH_LONG).show();
             }
-            else {
-                gasStationSearch();
-            }
         }
 
         Log.d("onLocationChanged", String.format("latitude:%.3f longitude:%.3f",latitude,longitude));
@@ -338,7 +340,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
         googlePlacesUrl.append("&rankby=distance");
         googlePlacesUrl.append("&type=" + nearbyPlace);
         //googlePlacesUrl.append("&keyword=shell");
-        googlePlacesUrl.append("&key=" + "AIzaSyCpxm09Wptnl10RwXdzV9FYxuiwXwCoO5E");
+        googlePlacesUrl.append("&key=" + "AIzaSyCX9NxVldFGpRqa4Vh7vSSRacMRpgxAhVs");
+        //AIzaSyCpxm09Wptnl10RwXdzV9FYxuiwXwCoO5E -- RYAN
+        //AIzaSyCX9NxVldFGpRqa4Vh7vSSRacMRpgxAhVs -- NAS
         return (googlePlacesUrl.toString());
     }
 
