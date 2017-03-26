@@ -8,4 +8,10 @@
         <item name="elevation">0dp</item>
     </style>
 
+    <style name="AppTheme.NoActionBar">
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+
 </resources>
