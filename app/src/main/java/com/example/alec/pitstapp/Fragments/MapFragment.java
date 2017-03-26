@@ -23,6 +23,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import com.example.alec.pitstapp.Adapters.GasStation;
@@ -74,6 +75,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
     double longitude;
     private RecyclerView recyclerViewNearby;
     private GasStationAdapter adapter;
+    private Spinner stationFilter;
     private ImageView ivAnchor;
     private GoogleMap mMap;
     private Button searchButton;
@@ -158,6 +160,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
         mapView = (MapView) rootView.findViewById(R.id.mapview);
         recyclerViewNearby = (RecyclerView)rootView.findViewById(R.id.recyclerView_results);
         searchButton = (Button) rootView.findViewById(R.id.searchButton);
+        stationFilter = (Spinner) rootView.findViewById(R.id.stationFilter);
         //ivAnchor = (ImageView) rootView.findViewById(R.id.nearby_anchor);
         //mLayout = (SlidingUpPanelLayout) rootView.findViewById(R.id.sliding_layout);
     }
@@ -346,8 +349,26 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
         return (googlePlacesUrl.toString());
     }
 
+    public String determineStationChosen() {
+        String chosenStation = stationFilter.getSelectedItem().toString();
+        String finalChosenStation = "";
+
+        if(chosenStation.toLowerCase().equals("all")) {
+            finalChosenStation = "all";
+        } else if(chosenStation.toLowerCase().equals("shell")) {
+            finalChosenStation = "shell";
+        } else if(chosenStation.toLowerCase().equals("petron")) {
+            finalChosenStation = "petron";
+        } else if(chosenStation.toLowerCase().equals("caltex")) {
+            finalChosenStation = "caltex";
+        }
+
+        return finalChosenStation;
+    }
+
     public class JSONTask extends AsyncTask<ArrayList<String>, String, ArrayList<String>>{
         int counter = 0;
+        int secondCounter = 0;
         String gasStationName = "";
         String gasStationVicinity = "";
         String gasStationPlaceID = "";
@@ -390,32 +411,111 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
                 JSONArray parentArray = parentObject.getJSONArray("results");
 
                 int i = 0;
+                String finalChosenStation = determineStationChosen();
 
                 counter = parentArray.length();
+
                 while (i != counter){
                     JSONObject finalObject = parentArray.getJSONObject(i);
-//                    JSONObject finalObject2 = parentArray3.getJSONObject(i);
 
                     String gasStationName = finalObject.getString("name");
-                    gasStationNamesList.add(gasStationName);
 
-                    String gasStationVicinity = finalObject.getString("vicinity");
-                    gasStationVicinitiesList.add(gasStationVicinity);
+                    if(finalChosenStation.equals("all")) {
+                        gasStationNamesList.add(gasStationName);
 
-                    String gasStationPlaceID = finalObject.getString("place_id");
-                    gasStationPlaceIDList.add(gasStationPlaceID);
+                        String gasStationVicinity = finalObject.getString("vicinity");
+                        gasStationVicinitiesList.add(gasStationVicinity);
 
-                    JSONObject gasStationLatitude1 = finalObject.getJSONObject("geometry");
-                    JSONObject gasStationLatitude2 = gasStationLatitude1.getJSONObject("location");
-                    gasStationLatitude = gasStationLatitude2.getString("lat");
-                    gasStationLatitudeList.add(gasStationLatitude);
+                        String gasStationPlaceID = finalObject.getString("place_id");
+                        gasStationPlaceIDList.add(gasStationPlaceID);
 
-                    JSONObject gasStationLongitude1 = finalObject.getJSONObject("geometry");
-                    JSONObject gasStationLongitude2 = gasStationLongitude1.getJSONObject("location");
-                    gasStationLongitude = gasStationLatitude2.getString("lng");
-                    gasStationLongitudeList.add(gasStationLongitude);
+                        JSONObject gasStationLatitude1 = finalObject.getJSONObject("geometry");
+                        JSONObject gasStationLatitude2 = gasStationLatitude1.getJSONObject("location");
+                        gasStationLatitude = gasStationLatitude2.getString("lat");
+                        gasStationLatitudeList.add(gasStationLatitude);
 
-                    i++;
+                        JSONObject gasStationLongitude1 = finalObject.getJSONObject("geometry");
+                        JSONObject gasStationLongitude2 = gasStationLongitude1.getJSONObject("location");
+                        gasStationLongitude = gasStationLatitude2.getString("lng");
+                        gasStationLongitudeList.add(gasStationLongitude);
+
+                        i++;
+                    } else if(finalChosenStation.equals("shell")) {
+                        if(gasStationName.toLowerCase().contains("shell")) {
+                            gasStationNamesList.add(gasStationName);
+
+                            String gasStationVicinity = finalObject.getString("vicinity");
+                            gasStationVicinitiesList.add(gasStationVicinity);
+
+                            String gasStationPlaceID = finalObject.getString("place_id");
+                            gasStationPlaceIDList.add(gasStationPlaceID);
+
+                            JSONObject gasStationLatitude1 = finalObject.getJSONObject("geometry");
+                            JSONObject gasStationLatitude2 = gasStationLatitude1.getJSONObject("location");
+                            gasStationLatitude = gasStationLatitude2.getString("lat");
+                            gasStationLatitudeList.add(gasStationLatitude);
+
+                            JSONObject gasStationLongitude1 = finalObject.getJSONObject("geometry");
+                            JSONObject gasStationLongitude2 = gasStationLongitude1.getJSONObject("location");
+                            gasStationLongitude = gasStationLatitude2.getString("lng");
+                            gasStationLongitudeList.add(gasStationLongitude);
+
+                            i++;
+                            secondCounter++;
+                        } else {
+                            i++;
+                        }
+                    } else if(finalChosenStation.equals("petron")) {
+                        if(gasStationName.toLowerCase().contains("petron")) {
+                            gasStationNamesList.add(gasStationName);
+
+                            String gasStationVicinity = finalObject.getString("vicinity");
+                            gasStationVicinitiesList.add(gasStationVicinity);
+
+                            String gasStationPlaceID = finalObject.getString("place_id");
+                            gasStationPlaceIDList.add(gasStationPlaceID);
+
+                            JSONObject gasStationLatitude1 = finalObject.getJSONObject("geometry");
+                            JSONObject gasStationLatitude2 = gasStationLatitude1.getJSONObject("location");
+                            gasStationLatitude = gasStationLatitude2.getString("lat");
+                            gasStationLatitudeList.add(gasStationLatitude);
+
+                            JSONObject gasStationLongitude1 = finalObject.getJSONObject("geometry");
+                            JSONObject gasStationLongitude2 = gasStationLongitude1.getJSONObject("location");
+                            gasStationLongitude = gasStationLatitude2.getString("lng");
+                            gasStationLongitudeList.add(gasStationLongitude);
+
+                            i++;
+                            secondCounter++;
+                        } else {
+                            i++;
+                        }
+                    } else if(finalChosenStation.equals("caltex")) {
+                        if(gasStationName.toLowerCase().contains("caltex")) {
+                            gasStationNamesList.add(gasStationName);
+
+                            String gasStationVicinity = finalObject.getString("vicinity");
+                            gasStationVicinitiesList.add(gasStationVicinity);
+
+                            String gasStationPlaceID = finalObject.getString("place_id");
+                            gasStationPlaceIDList.add(gasStationPlaceID);
+
+                            JSONObject gasStationLatitude1 = finalObject.getJSONObject("geometry");
+                            JSONObject gasStationLatitude2 = gasStationLatitude1.getJSONObject("location");
+                            gasStationLatitude = gasStationLatitude2.getString("lat");
+                            gasStationLatitudeList.add(gasStationLatitude);
+
+                            JSONObject gasStationLongitude1 = finalObject.getJSONObject("geometry");
+                            JSONObject gasStationLongitude2 = gasStationLongitude1.getJSONObject("location");
+                            gasStationLongitude = gasStationLatitude2.getString("lng");
+                            gasStationLongitudeList.add(gasStationLongitude);
+
+                            i++;
+                            secondCounter++;
+                        } else {
+                            i++;
+                        }
+                    }
                 }
 
                 gasStationClass.putGasStationInformationList(gasStationNamesList, gasStationVicinitiesList, gasStationPlaceIDList,
@@ -474,21 +574,50 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
             ArrayList<String> gasStationLatitudeList = gasStationClass.getGasStationLatitudeList();
             ArrayList<String> gasStationLongitudeList = gasStationClass.getGasStationLongitudeList();
 
-            while (i != counter){
+//            while (i != counter){
+//
+//                String gasStationName = gasStationNameList.get(i);
+//                String gasStationVicinity = gasStationVicinityList.get(i);
+//                String gasStationPlaceID = gasStationPlaceIDList.get(i);
+//                String latitude = gasStationLatitudeList.get(i);
+//                String longitude = gasStationLongitudeList.get(i);
+//
+//                //Toast.makeText(getActivity().getApplicationContext(), latitude, Toast.LENGTH_LONG).show();
+//
+//                GasStation nGasStation = new GasStation(gasStationName, gasStationVicinity, gasStationPlaceID, latitude, longitude);
+//                data.add(nGasStation);
+//
+//                i++;
+//            }
 
-                String gasStationName = gasStationNameList.get(i);
-                String gasStationVicinity = gasStationVicinityList.get(i);
-                String gasStationPlaceID = gasStationPlaceIDList.get(i);
-                String latitude = gasStationLatitudeList.get(i);
-                String longitude = gasStationLongitudeList.get(i);
+            if(determineStationChosen().equals("all")) {
+                for(int ctr = 0; ctr < counter; ctr++) {
+                    String gasStationName = gasStationNameList.get(ctr);
+                    String gasStationVicinity = gasStationVicinityList.get(ctr);
+                    String gasStationPlaceID = gasStationPlaceIDList.get(ctr);
+                    String latitude = gasStationLatitudeList.get(ctr);
+                    String longitude = gasStationLongitudeList.get(ctr);
 
-                //Toast.makeText(getActivity().getApplicationContext(), latitude, Toast.LENGTH_LONG).show();
+                    //Toast.makeText(getActivity().getApplicationContext(), latitude, Toast.LENGTH_LONG).show();
 
-                GasStation nGasStation = new GasStation(gasStationName, gasStationVicinity, gasStationPlaceID, latitude, longitude);
-                data.add(nGasStation);
+                    GasStation nGasStation = new GasStation(gasStationName, gasStationVicinity, gasStationPlaceID, latitude, longitude);
+                    data.add(nGasStation);
+                }
+            } else {
+                for(int ctr = 0; ctr < secondCounter; ctr++) {
+                    String gasStationName = gasStationNameList.get(ctr);
+                    String gasStationVicinity = gasStationVicinityList.get(ctr);
+                    String gasStationPlaceID = gasStationPlaceIDList.get(ctr);
+                    String latitude = gasStationLatitudeList.get(ctr);
+                    String longitude = gasStationLongitudeList.get(ctr);
 
-                i++;
+                    //Toast.makeText(getActivity().getApplicationContext(), latitude, Toast.LENGTH_LONG).show();
+
+                    GasStation nGasStation = new GasStation(gasStationName, gasStationVicinity, gasStationPlaceID, latitude, longitude);
+                    data.add(nGasStation);
+                }
             }
+
 
             adapter = new GasStationAdapter(getActivity(), data);
             recyclerViewNearby.setLayoutManager(new GridLayoutManager(getActivity(), 1));

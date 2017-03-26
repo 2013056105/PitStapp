@@ -27,6 +27,7 @@
             android:text="@string/filterByGC"/>
 
         <Spinner
+            android:id="@+id/stationFilter"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
