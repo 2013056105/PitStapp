@@ -1,12 +1,22 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.example.alec.pitstapp.Fragments.RoutesFragment">
+    android:orientation="vertical"
+    tools:context="com.example.alec.pitstapp.Fragments.NearbyGasStationFragment">
 
     <!-- TODO: Update blank fragment layout -->
-    <fragment
-        android:id="@+id/map_routeFragment"
+    <fragment android:id="@+id/map_routeToStation"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
-        android:layout_height="250dp"/>
-</FrameLayout>
+        android:layout_height="250dp"
+        tools:context=".Fragments.MapFragment"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:textSize="25sp"
+        android:textStyle="bold"
+        android:text="UNDER DEVELOPMENT!"/>
+</LinearLayout>

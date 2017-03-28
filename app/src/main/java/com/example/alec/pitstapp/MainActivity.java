@@ -1,18 +1,18 @@
 package com.example.alec.pitstapp;
 
 import android.Manifest;
-import android.support.v7.app.ActionBar;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
 
+import com.example.alec.pitstapp.Fragments.AboutFragment;
 import com.example.alec.pitstapp.Fragments.MapFragment;
 
 public class MainActivity extends AppCompatActivity {
@@ -76,9 +76,19 @@ public class MainActivity extends AppCompatActivity {
 
         super.onOptionsItemSelected(item);
         if(item.getItemId() == R.id.action_about){
-            Toast.makeText(this, "ABOUUUUUT",Toast.LENGTH_LONG).show();
+            FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+            AboutFragment aboutFragment = new AboutFragment();
+            fragmentTransaction.add(aboutFragment, "about")
+                    .replace(R.id.fragment_container, aboutFragment)
+                    .addToBackStack("about")
+                    .commit();
         }
         return true;
 
+    }
+
+    public void setActionBarTitle(String title) {
+        getSupportActionBar().setTitle("");
+        getSupportActionBar().setTitle(title);
     }
 }

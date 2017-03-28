@@ -9,7 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.example.alec.pitstapp.Fragments.MapFragment;
+import com.example.alec.pitstapp.Fragments.NearbyGasStationFragment;
 import com.example.alec.pitstapp.MainActivity;
 import com.example.alec.pitstapp.R;
 
@@ -81,7 +81,7 @@ public class GasStationAdapter extends RecyclerView.Adapter<GasStationAdapter.My
 
                     String chosenGasStationVicinity = ((TextView)v.findViewById(R.id.textView_vicinity)).getText().toString();
 
-                    MapFragment nearbyGasStationInformation = new MapFragment();
+                    NearbyGasStationFragment nearbyGasStationInformation = new NearbyGasStationFragment();
                     FragmentTransaction fragmentTransaction = ((MainActivity)context).getSupportFragmentManager().beginTransaction();
                     Bundle args = new Bundle();
                     args.putString("chosenGasStation" , chosenGasStation);
