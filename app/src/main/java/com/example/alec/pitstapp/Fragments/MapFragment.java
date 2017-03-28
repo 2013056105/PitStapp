@@ -11,7 +11,6 @@ import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -81,7 +80,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
     private Button searchButton;
     Marker gasStationMarker[];
 
-    public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
     String bufferCatcher = "";
 
     public MapFragment() {
@@ -110,9 +108,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
     }
 
     public void checkVersionAndGooglePlayServices() {
-        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            checkLocationPermission();
-        }
         //Check if Google Play Services Available or not
         if (!CheckGooglePlayServices()) {
             Log.d("onCreate", "Finishing test case since Google Play Services are not available");
@@ -120,27 +115,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
         }
         else {
             Log.d("onCreate","Google Play Services available.");
-        }
-    }
-
-    public boolean checkLocationPermission(){
-        if (ContextCompat.checkSelfPermission(getActivity().getApplicationContext(),
-                android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
-                    android.Manifest.permission.ACCESS_FINE_LOCATION)) {
-                ActivityCompat.requestPermissions(getActivity(),
-                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
-                        MY_PERMISSIONS_REQUEST_LOCATION);
-            }
-            else {
-                ActivityCompat.requestPermissions(getActivity(),
-                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
-                        MY_PERMISSIONS_REQUEST_LOCATION);
-            }
-            return false;
-        }
-        else {
-            return true;
         }
     }
 
