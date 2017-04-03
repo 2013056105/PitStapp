@@ -262,18 +262,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
 
     @Override
     public void onLocationChanged(Location location) {
-        mLastLocation = location;
-        if (mCurrLocationMarker != null) {
-            mCurrLocationMarker.remove();
-        }
-
         latitude = location.getLatitude();
         longitude = location.getLongitude();
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        MarkerOptions markerOptions = new MarkerOptions();
-        markerOptions.position(latLng);
-        markerOptions.title("Current Position");
-        mCurrLocationMarker = mMap.addMarker(markerOptions);
 
         float zoomLevel = (float) 16.0;
 
@@ -312,10 +303,20 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
     }
 
     private String getUrl(double latitude, double longitude, String nearbyPlace) {
+        String finalChosenStation = determineStationChosen();
         StringBuilder googlePlacesUrl = new StringBuilder("https://maps.googleapis.com/maps/api/place/nearbysearch/json?");
         googlePlacesUrl.append("location=" + latitude + "," + longitude);
         googlePlacesUrl.append("&rankby=distance");
         googlePlacesUrl.append("&type=" + nearbyPlace);
+        if(finalChosenStation.equals("shell")) {
+            googlePlacesUrl.append("&keyword=shell");
+        }
+        else if(finalChosenStation.equals("caltex")) {
+            googlePlacesUrl.append("&keyword=caltex");
+        }
+        else if(finalChosenStation.equals("petron")) {
+            googlePlacesUrl.append("&keyword=petron");
+        }
         //googlePlacesUrl.append("&keyword=shell");
         googlePlacesUrl.append("&key=" + "AIzaSyCX9NxVldFGpRqa4Vh7vSSRacMRpgxAhVs");
         //AIzaSyCpxm09Wptnl10RwXdzV9FYxuiwXwCoO5E -- RYAN
