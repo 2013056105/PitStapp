@@ -11,7 +11,9 @@ import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.GridLayoutManager;
@@ -21,7 +23,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.Toast;
 
@@ -42,7 +43,6 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -65,8 +65,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
         GoogleApiClient.OnConnectionFailedListener,LocationListener {
 
     GoogleApiClient mGoogleApiClient;
-    Location mLastLocation;
-    Marker mCurrLocationMarker;
     LocationRequest mLocationRequest;
     ViewGroup rootView;
     MapView mapView;
@@ -75,10 +73,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
     private RecyclerView recyclerViewNearby;
     private GasStationAdapter adapter;
     private Spinner stationFilter;
-    private ImageView ivAnchor;
     private GoogleMap mMap;
     private Button searchButton;
     Marker gasStationMarker[];
+    private Snackbar snackbar;
 
     String bufferCatcher = "";
 
@@ -90,12 +88,70 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         rootView = (ViewGroup) inflater.inflate(R.layout.fragment_map, container, false);
+
         checkVersionAndGooglePlayServices();
         initializeViews(rootView);
         configureMap(savedInstanceState);
         searchGasStation();
-        //configureSlidingPanel();
+
         return rootView;
+    }
+
+    public void checkGPSandInternet() {
+        if(!isConnectedToInternet()) {
+            snackbar = Snackbar.make(getView(), "Internet Connection is Unavailable", Snackbar.LENGTH_INDEFINITE)
+                    .setAction("RETRY", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            // refresh fragment
+                            onSnackbarRetryClicked();
+                        }
+                    });
+
+            snackbar.show();
+        }
+
+        if(!isConnectedToGPS()) {
+            snackbar = Snackbar.make(rootView, "GPS Service is Unavailable", Snackbar.LENGTH_INDEFINITE);
+
+            snackbar.show();
+        }
+
+        if(!isConnectedToInternet() && !isConnectedToGPS()) {
+            snackbar = Snackbar.make(rootView, "GPS and Internet Connection are Unavailable", Snackbar.LENGTH_INDEFINITE)
+                    .setAction("RETRY", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            // refresh fragment
+                            onSnackbarRetryClicked();
+                        }
+                    });
+
+            snackbar.show();
+        }
+    }
+
+    public void onSnackbarRetryClicked() {
+        getActivity().getSupportFragmentManager().popBackStack();
+        MapFragment mapFragment = new MapFragment();
+        FragmentTransaction fragmentTransaction = getFragmentManager().beginTransaction();
+        fragmentTransaction.add(mapFragment, "Nearby")
+                .replace(R.id.fragment_container, mapFragment)
+                .addToBackStack("Nearby")
+                .commit();
+    }
+
+    public boolean isConnectedToInternet() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+
+        return networkInfo != null && networkInfo.isConnected();
+    }
+
+    public boolean isConnectedToGPS() {
+        LocationManager locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+
+        return locationManager != null && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
     }
 
     public void searchGasStation() {
@@ -147,24 +203,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
     @Override
     public void onStart() {
         super.onStart();
-        boolean isLocationEnabled = false;
-        try {
-            if (isConnectedToNetwork(getContext()) == true) {
-                if (isLocationServiceEnabled() == false) {
-                    Toast.makeText(getActivity().getApplicationContext(),"No location", Toast.LENGTH_LONG).show();
-                }
-                else {
-                    isLocationEnabled = true;
-                }
-            }
-            if (isConnectedToNetwork(getContext()) == false && isLocationServiceEnabled() == false) {
-                Toast.makeText(getActivity().getApplicationContext(),"No internet connection and location service.", Toast.LENGTH_LONG).show();
-            }
-        }
-        catch (NullPointerException e){
-            Toast.makeText(getActivity().getApplicationContext(),"No location211", Toast.LENGTH_LONG).show();
-        }
-
+        checkGPSandInternet();
     }
 
     public static boolean isConnectedToNetwork(Context context) {
@@ -280,6 +319,12 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
 
         if (mGoogleApiClient != null) {
             LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+        }
+
+        if(snackbar != null) {
+            if(snackbar.isShown()) {
+                snackbar.dismiss();
+            }
         }
     }
 
