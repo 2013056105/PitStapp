@@ -535,6 +535,7 @@ public class NearbyGasStationFragment extends Fragment implements GoogleApiClien
             @Override
             public void onClick(View view) {
                 //INSERT INTENT HERE
+                Toast.makeText(getContext(), "nlasndkasndj", Toast.LENGTH_SHORT).show();
             }
         });
     }
