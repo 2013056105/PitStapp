@@ -71,4 +71,5 @@
     <string name="searchButton">Search</string>
 
     <string name="aboutBody">"PitStapp is a mobile application designed for motorists. It is an application which aims to help motorists locate nearby gas stations, and filter them if they prefer, in case of any emergencies like flat tires, insufficient gas, or any other services provided by gas stations."</string>
+    <string name="aboutWarning">"DO NOT USE PHONE WHILE DRIVING! STAY SAFE!"</string>
 </resources>
