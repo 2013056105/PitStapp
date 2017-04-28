@@ -326,6 +326,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback,GoogleAp
                 snackbar.dismiss();
             }
         }
+
+        mMap.setTrafficEnabled(true);
     }
 
     @Override

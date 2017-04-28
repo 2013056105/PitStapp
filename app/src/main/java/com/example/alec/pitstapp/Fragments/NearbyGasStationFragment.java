@@ -140,16 +140,12 @@ public class NearbyGasStationFragment extends Fragment implements GoogleApiClien
     public String getPhoneNumber (String placeID){
 
         StringBuilder gasStationInfoURL = new StringBuilder("https://maps.googleapis.com/maps/api/place/details/json?");
-        String angelKey = "AIzaSyATuUiZUkEc_UgHuqsBJa1oqaODI-3mLs0";
-        String raevenKey = "AIzaSyBRaI6vWSTL-W1cJm-SB60xNBjlbb8TMaU";
         String testKey = "AIzaSyDaHKjPR-NLen5OL_UfGTr53d0oP6S0tzM";
 
         gasStationInfoURL.append("placeid=" + placeID);
         gasStationInfoURL.append("&key=" + testKey );
 
         Log.d("PLACEID JSON", String.valueOf(gasStationInfoURL));
-        //Main Key = AIzaSyATuUiZUkEc_UgHuqsBJa1oqaODI-3mLs0 - Angel's key
-        //Alternative Key = AIzaSyBRaI6vWSTL-W1cJm-SB60xNBjlbb8TMaU - Raeven's key
         new NearbyGasStationFragment.JSONTask().execute(gasStationInfoURL.toString());
 
         return (gasStationInfoURL.toString());
@@ -351,6 +347,8 @@ public class NearbyGasStationFragment extends Fragment implements GoogleApiClien
             LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
             Log.d("onLocationChanged", "Removing Location Updates");
         }
+
+        mMap.setTrafficEnabled(true);
         Log.d("onLocationChanged", "Exit");
     }
 
@@ -511,8 +509,8 @@ public class NearbyGasStationFragment extends Fragment implements GoogleApiClien
 
                     // Adding all the points in the route to LineOptions
                     lineOptions.addAll(points);
-                    lineOptions.width(25);
-                    lineOptions.color(Color.RED);
+                    lineOptions.width(40);
+                    lineOptions.color(Color.parseColor("#551A8B"));
                     lineOptions.geodesic(true);
                 }
 
@@ -534,8 +532,20 @@ public class NearbyGasStationFragment extends Fragment implements GoogleApiClien
         getDirectionsButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //INSERT INTENT HERE
-                Toast.makeText(getContext(), "nlasndkasndj", Toast.LENGTH_SHORT).show();
+                final String uri = "geo:" + lat + "," + lng + "?q=" + lat + "," + lng;
+                final Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+                String title = "Open With";
+                Intent chooser = Intent.createChooser(intent, title);
+                startActivity(chooser);
+
+//                //FOR WAZE
+//                Intent intent = new Intent(android.content.Intent.ACTION_VIEW,
+//                        Uri.parse("waze://?ll="+lat+","+lng+"&navigate=yes"));
+//
+//                //FOR GMAPS
+//                Intent intent = new Intent(android.content.Intent.ACTION_VIEW,
+//                        Uri.parse("google.navigation:q="+lat+","+lng));
+//                startActivity(intent);
             }
         });
     }
