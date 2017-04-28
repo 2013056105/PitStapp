@@ -1,16 +1,26 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.example.alec.pitstapp.Fragments.AboutFragment">
+    tools:context="com.example.alec.pitstapp.Fragments.AboutFragment"
+    android:orientation="vertical">
 
     <!-- TODO: Update blank fragment layout -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:textSize="25sp"
-        android:textStyle="bold"
-        android:text="UNDER DEVELOPMENT!"/>
+    <ImageView
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:layout_marginTop="30dp"
+        android:layout_marginBottom="30dp"
+        android:layout_gravity="center_horizontal|center_vertical"
+        android:src="@drawable/ic_pitstapp_icon_120"/>
 
-</FrameLayout>
+    <com.codesgood.views.JustifiedTextView
+        android:layout_margin="10dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="start"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:text="@string/aboutBody"/>
+
+</LinearLayout>
