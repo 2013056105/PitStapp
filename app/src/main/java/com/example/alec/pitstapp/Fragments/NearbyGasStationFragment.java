@@ -15,11 +15,11 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.widget.DrawerLayout;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -65,6 +65,7 @@ import java.util.Locale;
 public class NearbyGasStationFragment extends Fragment implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, OnMapReadyCallback,
         LocationListener {
 
+    private Button getDirectionsButton;
     private TextView gasStationNameHolder;
     private TextView gasStationVicinityHolder;
     private TextView gasStationPhoneNumber;
@@ -97,11 +98,13 @@ public class NearbyGasStationFragment extends Fragment implements GoogleApiClien
 
         beforeStartFragment(v);
         checkAndroidVersion();
+        getDirectionsButtonListener();
 
         return v;
     }
 
     private void beforeStartFragment(View v){
+        getDirectionsButton = (Button) v.findViewById(R.id.button_getDirections);
         gasStationNameHolder = (TextView)v.findViewById(R.id.textview_gasStationnameinfo);
         gasStationVicinityHolder = (TextView)v.findViewById(R.id.textview_gasStationaddress);
         gasStationDistance = (TextView)v.findViewById(R.id.textView_distance);
@@ -527,6 +530,12 @@ public class NearbyGasStationFragment extends Fragment implements GoogleApiClien
         }
     }
 
-
-
+    public void getDirectionsButtonListener() {
+        getDirectionsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //INSERT INTENT HERE
+            }
+        });
+    }
 }
