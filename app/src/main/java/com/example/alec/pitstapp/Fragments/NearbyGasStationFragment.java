@@ -5,6 +5,7 @@ import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.graphics.Color;
 import android.location.Location;
 import android.net.Uri;
@@ -536,7 +537,21 @@ public class NearbyGasStationFragment extends Fragment implements GoogleApiClien
                 final Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
                 String title = "Open With";
                 Intent chooser = Intent.createChooser(intent, title);
-                startActivity(chooser);
+                PackageManager packageManager = getContext().getPackageManager();
+                List<ResolveInfo> activities = packageManager.queryIntentActivities(intent, 0);
+                boolean isIntentSafe = activities.size() > 0;
+                if (intent.resolveActivity(packageManager) != null) {
+                    if(activities.size() > 0){
+                        startActivity(chooser);
+                    }
+                    else {
+                        startActivity(intent);
+                    }
+                }
+                else{
+                    Toast.makeText(getActivity().getApplicationContext(), "No application can handle the request.", Toast.LENGTH_LONG).show();
+                }
+                //startActivity(chooser);
 
 //                //FOR WAZE
 //                Intent intent = new Intent(android.content.Intent.ACTION_VIEW,
